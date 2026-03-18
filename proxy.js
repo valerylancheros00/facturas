@@ -1,9 +1,8 @@
 const express = require('express');
-const fetch = require('node-fetch');
 const cors = require('cors');
 const app = express();
 
-app.use(cors({ origin: 'https://valerylancheros00.github.io' }));
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '20mb' }));
 
 app.post('/messages', async (req, res) => {
