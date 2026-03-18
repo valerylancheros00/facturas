@@ -3,135 +3,322 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Extractor de Facturas</title>
+<title>Lector de Facturas</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
-  .container { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
-  .sub { font-size: 14px; color: #666; margin-bottom: 2rem; }
-  .card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
-  label { font-size: 13px; color: #555; display: block; margin-bottom: 6px; }
-  .key-input { width: 100%; padding: 9px 12px; font-size: 13px; border: 0.5px solid #ccc; border-radius: 8px; font-family: monospace; background: #fafafa; color: #1a1a1a; outline: none; }
-  .key-input:focus { border-color: #378ADD; }
-  .hint { font-size: 11px; color: #999; margin-top: 5px; }
-  .hint a { color: #378ADD; }
-  .zone { border: 1.5px dashed #ccc; border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; background: #fafafa; }
-  .zone.drag { background: #EBF4FD; border-color: #378ADD; }
-  .zone-icon { font-size: 36px; margin-bottom: 8px; color: #aaa; }
-  .zone p { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
-  .zone small { font-size: 12px; color: #888; }
-  .btn { cursor: pointer; background: transparent; border: 0.5px solid #bbb; border-radius: 8px; padding: 8px 18px; font-size: 14px; color: #1a1a1a; transition: background 0.1s; font-family: inherit; }
-  .btn:hover { background: #f0eeea; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-  .btn-primary:hover { background: #333; }
-  .btn-dl { background: #1D9E75; color: #fff; border-color: #1D9E75; }
-  .btn-dl:hover { background: #0F6E56; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; background: #f0eeea; border: 0.5px solid #ddd; border-radius: 8px; padding: 5px 10px; font-size: 13px; color: #444; }
-  .rm { cursor: pointer; color: #aaa; font-size: 16px; line-height: 1; }
-  .rm:hover { color: #333; }
-  .prog-wrap { margin-top: 12px; display: none; }
-  .prog-text { font-size: 13px; color: #555; margin-bottom: 6px; }
-  .prog-bar { height: 4px; background: #e5e5e5; border-radius: 99px; overflow: hidden; }
-  .prog-fill { height: 100%; background: #378ADD; transition: width 0.3s; border-radius: 99px; }
-  .actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-  .table-wrap { margin-top: 20px; border: 0.5px solid #ddd; border-radius: 12px; overflow: hidden; display: none; }
-  .row { display: grid; grid-template-columns: 1.8fr 1fr 2fr 1fr 1fr; }
-  .row > div { padding: 9px 11px; font-size: 13px; border-bottom: 0.5px solid #eee; word-break: break-word; }
-  .hdr > div { font-size: 12px; font-weight: 500; color: #666; background: #fafafa; border-bottom: 0.5px solid #ddd; }
-  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
-  .ok { background: #EAF3DE; color: #3B6D11; }
-  .proc { background: #E6F1FB; color: #185FA5; }
-  .err { background: #FCEBEB; color: #A32D2D; }
-  @media (max-width: 520px) {
-    .row { grid-template-columns: 1.5fr 0.9fr 1.8fr 0.9fr 0.8fr; }
-    .row > div { font-size: 11px; padding: 7px 7px; }
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; }
+
+/* Layout */
+.sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: #fff; border-right: 0.5px solid #e0e0e0; padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
+.main { margin-left: 220px; padding: 2rem; max-width: 960px; }
+.logo { font-size: 15px; font-weight: 600; margin-bottom: 1.2rem; padding-left: 4px; }
+.logo span { color: #1D9E75; }
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; color: #555; transition: background 0.1s; border: none; background: transparent; width: 100%; text-align: left; font-family: inherit; }
+.nav-item:hover { background: #f0eeea; color: #1a1a1a; }
+.nav-item.active { background: #f0eeea; color: #1a1a1a; font-weight: 500; }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-sep { height: 0.5px; background: #eee; margin: 6px 0; }
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+h2 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+
+/* Cards */
+.card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+.card-title { font-size: 13px; font-weight: 500; color: #555; margin-bottom: 10px; }
+
+/* Key input */
+.key-input { width: 100%; padding: 9px 12px; font-size: 13px; border: 0.5px solid #ccc; border-radius: 8px; font-family: monospace; background: #fafafa; color: #1a1a1a; outline: none; }
+.key-input:focus { border-color: #1D9E75; }
+.hint { font-size: 11px; color: #999; margin-top: 5px; }
+.hint a { color: #1D9E75; }
+
+/* Drop zone */
+.zone { border: 1.5px dashed #ccc; border-radius: 12px; padding: 2rem 1.5rem; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; background: #fafafa; }
+.zone.drag { background: #e8f8f2; border-color: #1D9E75; }
+.zone p { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.zone small { font-size: 12px; color: #888; }
+
+/* Buttons */
+.btn { cursor: pointer; background: transparent; border: 0.5px solid #bbb; border-radius: 8px; padding: 8px 16px; font-size: 13px; color: #1a1a1a; transition: background 0.1s; font-family: inherit; white-space: nowrap; }
+.btn:hover { background: #f0eeea; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.btn-primary:hover { background: #333; }
+.btn-green { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.btn-green:hover { background: #0F6E56; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* Chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; background: #f0eeea; border: 0.5px solid #ddd; border-radius: 8px; padding: 4px 9px; font-size: 12px; color: #444; }
+.rm { cursor: pointer; color: #aaa; font-size: 15px; line-height: 1; }
+.rm:hover { color: #333; }
+
+/* Progress */
+.prog-wrap { display: none; margin-bottom: 1rem; }
+.prog-text { font-size: 13px; color: #555; margin-bottom: 6px; }
+.prog-bar { height: 4px; background: #e5e5e5; border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; background: #1D9E75; transition: width 0.3s; border-radius: 99px; }
+
+/* Actions row */
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+
+/* Table */
+.tbl-wrap { border: 0.5px solid #ddd; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+.tbl-row { display: grid; }
+.tbl-row > div { padding: 8px 11px; font-size: 13px; border-bottom: 0.5px solid #eee; word-break: break-word; }
+.tbl-hdr > div { font-size: 11px; font-weight: 500; color: #666; background: #fafafa; border-bottom: 0.5px solid #ddd; text-transform: uppercase; letter-spacing: 0.03em; }
+.tbl-row:last-child > div { border-bottom: none; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
+.ok { background: #EAF3DE; color: #3B6D11; }
+.proc { background: #E6F1FB; color: #185FA5; }
+.err { background: #FCEBEB; color: #A32D2D; }
+.warn { background: #FAEEDA; color: #854F0B; }
+
+/* Preview grid */
+.preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+.preview-item { border: 0.5px solid #ddd; border-radius: 8px; overflow: hidden; background: #fafafa; position: relative; }
+.preview-item img { width: 100%; height: 110px; object-fit: cover; display: block; }
+.preview-item .prev-name { font-size: 11px; color: #666; padding: 5px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-item .prev-status { position: absolute; top: 6px; right: 6px; }
+.pdf-thumb { width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: #f0eeea; }
+
+/* Stats grid */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.stat-card { background: #fff; border: 0.5px solid #ddd; border-radius: 10px; padding: 1rem; }
+.stat-label { font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-value { font-size: 22px; font-weight: 500; }
+
+/* Month section */
+.month-section { margin-bottom: 1.5rem; }
+.month-header { font-size: 14px; font-weight: 500; padding: 8px 0; border-bottom: 0.5px solid #eee; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.month-total { font-size: 12px; color: #888; }
+
+/* Duplicate warning */
+.dup-banner { background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #633806; margin-bottom: 1rem; display: none; }
+
+/* Provider chart bars */
+.prov-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.prov-name { font-size: 13px; min-width: 130px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prov-bar-wrap { flex: 1; background: #f0eeea; border-radius: 99px; height: 8px; }
+.prov-bar { background: #1D9E75; border-radius: 99px; height: 8px; transition: width 0.4s; }
+.prov-amt { font-size: 12px; color: #666; min-width: 80px; text-align: right; }
+
+/* Empty state */
+.empty { text-align: center; padding: 3rem 1rem; color: #aaa; font-size: 14px; }
+
+@media (max-width: 640px) {
+  .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; padding: 0.75rem; border-right: none; border-bottom: 0.5px solid #e0e0e0; }
+  .main { margin-left: 0; padding: 1rem; }
+  .logo { margin-bottom: 0; }
+}
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Extractor de Facturas</h1>
-  <p class="sub">Sube fotos o PDFs de facturas y descarga el Excel listo para el contador.</p>
 
-  <div class="card">
-    <label>API Key de Anthropic</label>
-    <input class="key-input" id="apiKey" type="password" placeholder="sk-ant-..." />
-    <p class="hint">Solo se usa en tu navegador, nunca se envía a otro servidor. <a href="https://console.anthropic.com" target="_blank">Obtener key →</a></p>
-  </div>
+<div class="sidebar">
+  <div class="logo">Lector de <span>Facturas</span></div>
+  <button class="nav-item active" onclick="showPage('upload')"><span class="nav-icon">⬆</span> Subir facturas</button>
+  <button class="nav-item" onclick="showPage('historial')"><span class="nav-icon">📋</span> Historial</button>
+  <button class="nav-item" onclick="showPage('resumen')"><span class="nav-icon">📊</span> Resumen</button>
+  <div class="nav-sep"></div>
+  <button class="nav-item" onclick="showPage('config')"><span class="nav-icon">⚙</span> Configuración</button>
+</div>
 
-  <div class="card">
-    <div class="zone" id="dropZone">
-      <div class="zone-icon">☁</div>
-      <p>Arrastra fotos o PDFs aquí</p>
-      <small>JPG, PNG, PDF — varias a la vez</small>
-      <br /><br />
-      <button class="btn" onclick="document.getElementById('fileInput').click()">Seleccionar archivos</button>
-      <input type="file" id="fileInput" multiple accept="image/*,.pdf" style="display:none" />
+<div class="main">
+
+  <!-- UPLOAD PAGE -->
+  <div class="page active" id="page-upload">
+    <h2>Subir facturas</h2>
+    <p class="page-sub">Arrastra las fotos o PDFs y extrae los datos automáticamente.</p>
+
+    <div class="card">
+      <div class="zone" id="dropZone">
+        <p>Arrastra fotos o PDFs aquí</p>
+        <small>JPG, PNG, PDF — varias a la vez, sin límite</small>
+        <br/><br/>
+        <button class="btn" onclick="document.getElementById('fileInput').click()">Seleccionar archivos</button>
+        <input type="file" id="fileInput" multiple accept="image/*,.pdf" style="display:none" />
+      </div>
+      <div class="chips" id="fileList"></div>
     </div>
-    <div class="chips" id="fileList"></div>
-  </div>
 
-  <div class="prog-wrap" id="progress">
-    <p class="prog-text" id="progressText"></p>
-    <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
-  </div>
-
-  <div class="actions">
-    <button class="btn btn-primary" id="processBtn" onclick="processAll()" disabled>Procesar facturas</button>
-    <button class="btn btn-dl" id="downloadBtn" onclick="downloadExcel()" style="display:none" disabled>⬇ Descargar Excel</button>
-    <span id="statusMsg" style="font-size:12px;color:#888;"></span>
-  </div>
-
-  <div class="table-wrap" id="tableWrap">
-    <div class="row hdr">
-      <div>Archivo</div><div>Fecha</div><div>Proveedor</div><div>Monto total</div><div>IVA</div>
+    <div id="previewSection" style="display:none" class="card">
+      <div class="card-title">Vista previa</div>
+      <div class="preview-grid" id="previewGrid"></div>
     </div>
-    <div id="tableBody"></div>
+
+    <div id="dupBanner" class="dup-banner"></div>
+
+    <div class="prog-wrap" id="progress">
+      <p class="prog-text" id="progressText"></p>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="processBtn" onclick="processAll()" disabled>Procesar facturas</button>
+      <button class="btn btn-green" id="downloadXlsBtn" onclick="downloadExcel()" style="display:none" disabled>⬇ Descargar Excel</button>
+      <button class="btn" id="downloadPdfBtn" onclick="downloadPDF()" style="display:none" disabled>⬇ Descargar PDF</button>
+      <button class="btn btn-sm" id="clearBtn" onclick="clearAll()" style="display:none">Limpiar</button>
+    </div>
+
+    <div id="tableWrap" class="tbl-wrap" style="display:none">
+      <div class="tbl-row tbl-hdr" style="grid-template-columns: 1.6fr 0.9fr 1.8fr 1fr 0.8fr 0.8fr;">
+        <div>Archivo</div><div>Fecha</div><div>Proveedor</div><div>Total</div><div>IVA</div><div>Estado</div>
+      </div>
+      <div id="tableBody"></div>
+    </div>
   </div>
+
+  <!-- HISTORIAL PAGE -->
+  <div class="page" id="page-historial">
+    <h2>Historial</h2>
+    <p class="page-sub">Todas las facturas procesadas, guardadas en tu navegador.</p>
+    <div class="actions">
+      <button class="btn btn-green" onclick="downloadExcelHistorial()">⬇ Excel completo</button>
+      <button class="btn btn-sm" onclick="clearHistorial()" style="color:#A32D2D; border-color:#A32D2D;">Borrar historial</button>
+    </div>
+    <div id="historialContent"></div>
+  </div>
+
+  <!-- RESUMEN PAGE -->
+  <div class="page" id="page-resumen">
+    <h2>Resumen</h2>
+    <p class="page-sub">Total gastado por mes y por proveedor.</p>
+    <div id="resumenContent"></div>
+  </div>
+
+  <!-- CONFIG PAGE -->
+  <div class="page" id="page-config">
+    <h2>Configuración</h2>
+    <p class="page-sub">Tu API key se guarda solo en este navegador.</p>
+    <div class="card">
+      <div class="card-title">API Key de Anthropic</div>
+      <input class="key-input" id="apiKey" type="password" placeholder="sk-ant-..." oninput="saveKey()" />
+      <p class="hint">Solo se usa en tu dispositivo. <a href="https://console.anthropic.com" target="_blank">Obtener key gratuita →</a></p>
+    </div>
+    <div class="card">
+      <div class="card-title">Moneda</div>
+      <select id="currency" onchange="saveCurrency()" style="padding:8px 12px; border:0.5px solid #ccc; border-radius:8px; font-size:13px; background:#fafafa; font-family:inherit; outline:none;">
+        <option value="COP">COP — Peso colombiano</option>
+        <option value="USD">USD — Dólar</option>
+        <option value="EUR">EUR — Euro</option>
+        <option value="MXN">MXN — Peso mexicano</option>
+      </select>
+    </div>
+  </div>
+
 </div>
 
 <script>
+// ─── State ───────────────────────────────────────────────
 let files = [];
-let results = [];
+let sessionResults = [];
 
+// ─── Init ─────────────────────────────────────────────────
+window.onload = () => {
+  const k = localStorage.getItem('fc_apikey');
+  if (k) document.getElementById('apiKey').value = k;
+  const c = localStorage.getItem('fc_currency');
+  if (c) document.getElementById('currency').value = c;
+  updateBtn();
+  renderHistorial();
+  renderResumen();
+};
+
+// ─── Navigation ──────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'historial') renderHistorial();
+  if (id === 'resumen') renderResumen();
+}
+
+// ─── Config ──────────────────────────────────────────────
+function saveKey() { localStorage.setItem('fc_apikey', document.getElementById('apiKey').value.trim()); updateBtn(); }
+function saveCurrency() { localStorage.setItem('fc_currency', document.getElementById('currency').value); }
+function getKey() { return (document.getElementById('apiKey').value || localStorage.getItem('fc_apikey') || '').trim(); }
+function getCurrency() { return localStorage.getItem('fc_currency') || 'COP'; }
+
+// ─── Drag & Drop ─────────────────────────────────────────
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
 dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); addFiles(e.dataTransfer.files); });
 fileInput.addEventListener('change', () => addFiles(fileInput.files));
-document.getElementById('apiKey').addEventListener('input', updateBtn);
 
 function addFiles(newFiles) {
   for (const f of newFiles) {
     if (!files.find(x => x.name === f.name)) files.push(f);
   }
   renderChips();
+  renderPreviews();
+  checkDuplicates();
   updateBtn();
 }
 
 function removeFile(name) {
   files = files.filter(f => f.name !== name);
   renderChips();
+  renderPreviews();
   updateBtn();
 }
 
 function renderChips() {
-  const el = document.getElementById('fileList');
-  el.innerHTML = files.map(f => `
-    <div class="chip">
-      <span>${f.name.length > 24 ? f.name.slice(0,22)+'…' : f.name}</span>
-      <span class="rm" onclick="removeFile('${CSS.escape(f.name)}')">×</span>
-    </div>`).join('');
+  document.getElementById('fileList').innerHTML = files.map(f =>
+    `<div class="chip"><span>${f.name.length>24?f.name.slice(0,22)+'…':f.name}</span><span class="rm" onclick="removeFile('${f.name.replace(/'/g,"\\'")}')">×</span></div>`
+  ).join('');
 }
 
+function renderPreviews() {
+  const sec = document.getElementById('previewSection');
+  const grid = document.getElementById('previewGrid');
+  if (!files.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  grid.innerHTML = files.map(f => {
+    const id = 'prev_' + safeId(f.name);
+    if (f.type === 'application/pdf') {
+      return `<div class="preview-item" id="${id}"><div class="pdf-thumb">📄</div><div class="prev-name">${f.name}</div><div class="prev-status"></div></div>`;
+    }
+    const url = URL.createObjectURL(f);
+    return `<div class="preview-item" id="${id}"><img src="${url}" /><div class="prev-name">${f.name}</div><div class="prev-status"></div></div>`;
+  }).join('');
+}
+
+function updatePreviewStatus(name, status) {
+  const el = document.getElementById('prev_' + safeId(name));
+  if (!el) return;
+  const s = el.querySelector('.prev-status');
+  const map = { proc: '<span class="badge proc">...</span>', ok: '<span class="badge ok">✓</span>', err: '<span class="badge err">✗</span>', dup: '<span class="badge warn">dup</span>' };
+  s.innerHTML = map[status] || '';
+}
+
+// ─── Duplicate detection ─────────────────────────────────
+function checkDuplicates() {
+  const hist = getHistorial();
+  const banner = document.getElementById('dupBanner');
+  const dups = files.filter(f => hist.find(h => h._file === f.name));
+  if (dups.length) {
+    banner.style.display = 'block';
+    banner.textContent = `⚠ Posible duplicado: ${dups.map(d=>d.name).join(', ')} — ya fue procesada antes.`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// ─── Processing ───────────────────────────────────────────
 function updateBtn() {
-  const key = document.getElementById('apiKey').value.trim();
+  const key = getKey();
   document.getElementById('processBtn').disabled = files.length === 0 || !key;
 }
 
@@ -157,12 +344,12 @@ async function processFile(file, key) {
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-ipc': 'true' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 512,
+      max_tokens: 800,
       messages: [{
         role: 'user',
         content: [
           contentItem,
-          { type: 'text', text: 'Extrae de esta factura: fecha, nombre del proveedor o empresa, monto total, y monto de IVA. Responde SOLO con JSON sin texto adicional ni backticks, con exactamente estas claves: fecha, proveedor, monto_total, iva. Si algún dato no aparece escribe null.' }
+          { type: 'text', text: 'Extrae de esta factura los siguientes datos. Responde SOLO con JSON válido sin texto adicional ni backticks. Claves exactas: fecha (formato YYYY-MM-DD o null), proveedor (nombre empresa/persona), monto_total (número sin símbolos ni comas, solo dígitos y punto decimal), iva (número sin símbolos), descripcion (lista de productos/servicios comprados como string corto, máx 120 caracteres). Si algún dato no existe escribe null.' }
         ]
       }]
     })
@@ -170,83 +357,299 @@ async function processFile(file, key) {
 
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.error?.message || 'Error API');
-  const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+  const text = data.content[0].text.trim().replace(/```json|```/g,'').trim();
   return JSON.parse(text);
 }
 
 async function processAll() {
-  const key = document.getElementById('apiKey').value.trim();
-  if (!key || files.length === 0) return;
+  const key = getKey();
+  if (!key || !files.length) return;
 
-  results = [];
+  sessionResults = [];
   document.getElementById('tableBody').innerHTML = '';
   document.getElementById('tableWrap').style.display = 'none';
-  document.getElementById('downloadBtn').style.display = 'none';
+  document.getElementById('downloadXlsBtn').style.display = 'none';
+  document.getElementById('downloadPdfBtn').style.display = 'none';
+  document.getElementById('clearBtn').style.display = 'none';
   document.getElementById('processBtn').disabled = true;
   document.getElementById('progress').style.display = 'block';
 
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    document.getElementById('progressText').textContent = `Procesando ${i + 1} de ${files.length}: ${f.name}`;
+    document.getElementById('progressText').textContent = `Procesando ${i+1} de ${files.length}: ${f.name}`;
     document.getElementById('progFill').style.width = ((i / files.length) * 100) + '%';
     addRow(f.name, null, 'proc');
+    updatePreviewStatus(f.name, 'proc');
     try {
       const data = await processFile(f, key);
       data._file = f.name;
-      results.push(data);
-      updateRow(f.name, data, 'ok');
+      data._ts = new Date().toISOString();
+      sessionResults.push(data);
+      saveToHistorial(data);
+      const isDup = getHistorial().filter(h => h._file === f.name).length > 1;
+      updateRow(f.name, data, isDup ? 'dup' : 'ok');
+      updatePreviewStatus(f.name, isDup ? 'dup' : 'ok');
     } catch(e) {
-      results.push({ _file: f.name, fecha: null, proveedor: null, monto_total: null, iva: null, _error: e.message });
+      const err = { _file: f.name, _ts: new Date().toISOString(), _error: e.message };
+      sessionResults.push(err);
       updateRow(f.name, null, 'err');
+      updatePreviewStatus(f.name, 'err');
     }
   }
 
   document.getElementById('progFill').style.width = '100%';
-  const ok = results.filter(r => !r._error).length;
+  const ok = sessionResults.filter(r => !r._error).length;
   document.getElementById('progressText').textContent = `Listo. ${ok} de ${files.length} procesadas correctamente.`;
   document.getElementById('tableWrap').style.display = 'block';
-  document.getElementById('downloadBtn').style.display = 'inline-block';
-  document.getElementById('downloadBtn').disabled = false;
+  document.getElementById('downloadXlsBtn').style.display = 'inline-block';
+  document.getElementById('downloadXlsBtn').disabled = false;
+  document.getElementById('downloadPdfBtn').style.display = 'inline-block';
+  document.getElementById('downloadPdfBtn').disabled = false;
+  document.getElementById('clearBtn').style.display = 'inline-block';
   document.getElementById('processBtn').disabled = false;
 }
 
-function rowId(name) { return 'row_' + name.replace(/[^a-z0-9]/gi, '_'); }
+function clearAll() {
+  files = [];
+  sessionResults = [];
+  document.getElementById('fileList').innerHTML = '';
+  document.getElementById('previewGrid').innerHTML = '';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('downloadXlsBtn').style.display = 'none';
+  document.getElementById('downloadPdfBtn').style.display = 'none';
+  document.getElementById('clearBtn').style.display = 'none';
+  document.getElementById('progress').style.display = 'none';
+  document.getElementById('dupBanner').style.display = 'none';
+  updateBtn();
+}
+
+// ─── Table rows ──────────────────────────────────────────
+function safeId(name) { return name.replace(/[^a-z0-9]/gi,'_'); }
 
 function addRow(name, data, status) {
   const tb = document.getElementById('tableBody');
   const div = document.createElement('div');
-  div.className = 'row';
-  div.id = rowId(name);
+  div.className = 'tbl-row';
+  div.style.gridTemplateColumns = '1.6fr 0.9fr 1.8fr 1fr 0.8fr 0.8fr';
+  div.id = 'row_' + safeId(name);
   div.innerHTML = rowHtml(name, data, status);
   tb.appendChild(div);
 }
 
 function updateRow(name, data, status) {
-  const div = document.getElementById(rowId(name));
+  const div = document.getElementById('row_' + safeId(name));
   if (div) div.innerHTML = rowHtml(name, data, status);
 }
 
 function rowHtml(name, data, status) {
-  const short = name.length > 20 ? name.slice(0, 18) + '…' : name;
-  if (status === 'proc') return `<div><span class="badge proc">...</span> <span style="font-size:11px;color:#aaa">${short}</span></div><div>—</div><div>—</div><div>—</div><div>—</div>`;
-  if (status === 'err')  return `<div><span class="badge err">Error</span> <span style="font-size:11px;color:#aaa">${short}</span></div><div>—</div><div>—</div><div>—</div><div>—</div>`;
+  const short = name.length > 18 ? name.slice(0,16)+'…' : name;
+  const badges = { proc: '<span class="badge proc">...</span>', ok: '<span class="badge ok">OK</span>', err: '<span class="badge err">Error</span>', dup: '<span class="badge warn">Dup</span>' };
+  if (status === 'proc') return `<div>${short}</div><div>—</div><div>—</div><div>—</div><div>—</div><div>${badges.proc}</div>`;
+  if (status === 'err')  return `<div>${short}</div><div>—</div><div>—</div><div>—</div><div>—</div><div>${badges.err}</div>`;
+  const cur = getCurrency();
   return `
-    <div><span class="badge ok">OK</span> <span style="font-size:11px;color:#aaa">${short}</span></div>
+    <div title="${name}">${short}</div>
     <div>${data.fecha || '—'}</div>
     <div>${data.proveedor || '—'}</div>
-    <div>${data.monto_total ?? '—'}</div>
-    <div>${data.iva ?? '—'}</div>`;
+    <div>${fmtNum(data.monto_total)} ${cur}</div>
+    <div>${fmtNum(data.iva)}</div>
+    <div>${badges[status]||badges.ok}</div>`;
+}
+
+// ─── Historial storage ────────────────────────────────────
+function getHistorial() { try { return JSON.parse(localStorage.getItem('fc_hist') || '[]'); } catch { return []; } }
+function saveToHistorial(item) {
+  const hist = getHistorial();
+  hist.push(item);
+  localStorage.setItem('fc_hist', JSON.stringify(hist));
+}
+function clearHistorial() {
+  if (!confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return;
+  localStorage.removeItem('fc_hist');
+  renderHistorial();
+  renderResumen();
+}
+
+function renderHistorial() {
+  const hist = getHistorial();
+  const el = document.getElementById('historialContent');
+  if (!hist.length) { el.innerHTML = '<div class="empty">No hay facturas en el historial aún.</div>'; return; }
+
+  const byMonth = groupByMonth(hist.filter(h => !h._error));
+  let html = '';
+  for (const [month, items] of Object.entries(byMonth).reverse()) {
+    const total = items.reduce((s, i) => s + parseFloat(i.monto_total||0), 0);
+    html += `<div class="month-section">
+      <div class="month-header"><span>${fmtMonth(month)}</span><span class="month-total">${items.length} facturas · Total: ${fmtNum(total)} ${getCurrency()}</span></div>
+      <div class="tbl-wrap">
+        <div class="tbl-row tbl-hdr" style="grid-template-columns:1.6fr 1fr 1.8fr 1fr 0.8fr 2fr">
+          <div>Archivo</div><div>Fecha</div><div>Proveedor</div><div>Total</div><div>IVA</div><div>Descripción</div>
+        </div>`;
+    for (const r of items) {
+      html += `<div class="tbl-row" style="grid-template-columns:1.6fr 1fr 1.8fr 1fr 0.8fr 2fr">
+        <div title="${r._file}">${r._file.length>18?r._file.slice(0,16)+'…':r._file}</div>
+        <div>${r.fecha||'—'}</div>
+        <div>${r.proveedor||'—'}</div>
+        <div>${fmtNum(r.monto_total)} ${getCurrency()}</div>
+        <div>${fmtNum(r.iva)}</div>
+        <div style="font-size:12px;color:#666">${r.descripcion||'—'}</div>
+      </div>`;
+    }
+    html += '</div></div>';
+  }
+  el.innerHTML = html;
+}
+
+function renderResumen() {
+  const hist = getHistorial().filter(h => !h._error && h.monto_total);
+  const el = document.getElementById('resumenContent');
+  if (!hist.length) { el.innerHTML = '<div class="empty">Procesa facturas para ver el resumen.</div>'; return; }
+
+  const total = hist.reduce((s, i) => s + parseFloat(i.monto_total||0), 0);
+  const totalIva = hist.reduce((s, i) => s + parseFloat(i.iva||0), 0);
+  const cur = getCurrency();
+
+  // Stats
+  let html = `<div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total gastado</div><div class="stat-value">${fmtNum(total)}<span style="font-size:13px;color:#888"> ${cur}</span></div></div>
+    <div class="stat-card"><div class="stat-label">Total IVA</div><div class="stat-value">${fmtNum(totalIva)}<span style="font-size:13px;color:#888"> ${cur}</span></div></div>
+    <div class="stat-card"><div class="stat-label">Facturas</div><div class="stat-value">${hist.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Promedio</div><div class="stat-value">${fmtNum(total/hist.length)}<span style="font-size:13px;color:#888"> ${cur}</span></div></div>
+  </div>`;
+
+  // By month
+  const byMonth = groupByMonth(hist);
+  html += `<div class="card"><div class="card-title">Gasto por mes</div>`;
+  const monthTotals = Object.entries(byMonth).map(([m, items]) => [m, items.reduce((s,i)=>s+parseFloat(i.monto_total||0),0)]);
+  const maxM = Math.max(...monthTotals.map(x=>x[1]));
+  for (const [m, amt] of monthTotals.reverse()) {
+    html += `<div class="prov-row"><div class="prov-name">${fmtMonth(m)}</div><div class="prov-bar-wrap"><div class="prov-bar" style="width:${(amt/maxM*100).toFixed(1)}%"></div></div><div class="prov-amt">${fmtNum(amt)} ${cur}</div></div>`;
+  }
+  html += '</div>';
+
+  // By provider
+  const byProv = {};
+  for (const r of hist) {
+    const p = r.proveedor || 'Sin nombre';
+    byProv[p] = (byProv[p]||0) + parseFloat(r.monto_total||0);
+  }
+  const provSorted = Object.entries(byProv).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxP = provSorted[0]?.[1] || 1;
+  html += `<div class="card"><div class="card-title">Top proveedores</div>`;
+  for (const [p, amt] of provSorted) {
+    html += `<div class="prov-row"><div class="prov-name" title="${p}">${p}</div><div class="prov-bar-wrap"><div class="prov-bar" style="width:${(amt/maxP*100).toFixed(1)}%"></div></div><div class="prov-amt">${fmtNum(amt)} ${cur}</div></div>`;
+  }
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+// ─── Excel export ─────────────────────────────────────────
+function buildExcelData(data) {
+  const cur = getCurrency();
+  const byMonth = groupByMonth(data.filter(r=>!r._error));
+  const wb = XLSX.utils.book_new();
+
+  // Sheet per month
+  for (const [month, items] of Object.entries(byMonth)) {
+    const rows = [['Archivo','Fecha','Proveedor / Empresa','Monto Total','IVA','Descripción']];
+    for (const r of items) rows.push([r._file, r.fecha||'', r.proveedor||'', r.monto_total??'', r.iva??'', r.descripcion||'']);
+    rows.push([]);
+    rows.push(['','','TOTAL', `=SUM(D2:D${items.length+1})`, `=SUM(E2:E${items.length+1})`, '']);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:28},{wch:12},{wch:28},{wch:14},{wch:12},{wch:40}];
+    XLSX.utils.book_append_sheet(wb, ws, fmtMonth(month).slice(0,31));
+  }
+
+  // Summary sheet
+  const sumRows = [['Mes','Facturas','Total '+cur,'Total IVA']];
+  for (const [month, items] of Object.entries(byMonth)) {
+    const t = items.reduce((s,i)=>s+parseFloat(i.monto_total||0),0);
+    const iv = items.reduce((s,i)=>s+parseFloat(i.iva||0),0);
+    sumRows.push([fmtMonth(month), items.length, t, iv]);
+  }
+  const wsSummary = XLSX.utils.aoa_to_sheet(sumRows);
+  wsSummary['!cols'] = [{wch:18},{wch:10},{wch:18},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
+  return wb;
 }
 
 function downloadExcel() {
-  if (!results.length) return;
-  const rows = [['Archivo', 'Fecha', 'Proveedor / Empresa', 'Monto Total', 'IVA']];
-  for (const r of results) rows.push([r._file, r.fecha || '', r.proveedor || '', r.monto_total ?? '', r.iva ?? '']);
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:32},{wch:14},{wch:32},{wch:14},{wch:14}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Facturas');
-  XLSX.writeFile(wb, 'facturas.xlsx');
+  if (!sessionResults.length) return;
+  const wb = buildExcelData(sessionResults);
+  XLSX.writeFile(wb, 'facturas_sesion.xlsx');
+}
+
+function downloadExcelHistorial() {
+  const hist = getHistorial();
+  if (!hist.length) return;
+  const wb = buildExcelData(hist);
+  XLSX.writeFile(wb, 'facturas_historial.xlsx');
+}
+
+// ─── PDF export ───────────────────────────────────────────
+function downloadPDF() {
+  if (!sessionResults.length) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const cur = getCurrency();
+  const data = sessionResults.filter(r => !r._error);
+  let y = 20;
+
+  doc.setFontSize(16); doc.setFont(undefined,'bold');
+  doc.text('Resumen de Facturas', 20, y); y += 8;
+  doc.setFontSize(10); doc.setFont(undefined,'normal');
+  doc.text('Generado: ' + new Date().toLocaleDateString('es-CO'), 20, y); y += 10;
+
+  const byMonth = groupByMonth(data);
+  for (const [month, items] of Object.entries(byMonth)) {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFontSize(12); doc.setFont(undefined,'bold');
+    doc.text(fmtMonth(month), 20, y); y += 6;
+    doc.setFontSize(9); doc.setFont(undefined,'normal');
+    for (const r of items) {
+      if (y > 270) { doc.addPage(); y = 20; }
+      const line = `${r.fecha||'—'}  |  ${(r.proveedor||'—').slice(0,30)}  |  ${fmtNum(r.monto_total)} ${cur}  |  IVA: ${fmtNum(r.iva)}`;
+      doc.text(line, 22, y); y += 5;
+    }
+    const total = items.reduce((s,i)=>s+parseFloat(i.monto_total||0),0);
+    doc.setFont(undefined,'bold');
+    doc.text(`Total ${fmtMonth(month)}: ${fmtNum(total)} ${cur}`, 22, y); y += 8;
+    doc.setFont(undefined,'normal');
+  }
+
+  const grand = data.reduce((s,i)=>s+parseFloat(i.monto_total||0),0);
+  if (y > 260) { doc.addPage(); y = 20; }
+  doc.setFontSize(12); doc.setFont(undefined,'bold');
+  doc.text(`TOTAL GENERAL: ${fmtNum(grand)} ${cur}`, 20, y);
+  doc.save('facturas_resumen.pdf');
+}
+
+// ─── Helpers ──────────────────────────────────────────────
+function fmtNum(n) {
+  if (n === null || n === undefined || n === '') return '—';
+  const num = parseFloat(n);
+  if (isNaN(num)) return String(n);
+  return num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function groupByMonth(items) {
+  const groups = {};
+  for (const item of items) {
+    const d = item.fecha || '';
+    const key = d.length >= 7 ? d.slice(0,7) : 'sin-fecha';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  }
+  return Object.fromEntries(Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])));
+}
+
+function fmtMonth(key) {
+  if (key === 'sin-fecha') return 'Sin fecha';
+  const [y, m] = key.split('-');
+  const names = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return `${names[parseInt(m)]} ${y}`;
 }
 </script>
 </body>
