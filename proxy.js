@@ -3,7 +3,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 app.post('/messages', async (req, res) => {
   try {
@@ -16,8 +16,8 @@ app.post('/messages', async (req, res) => {
       },
       body: JSON.stringify(req.body),
     });
-    const data = await resp.json();
-    res.json(data);
+    const text = await resp.text();
+    res.status(resp.status).set('Content-Type', 'application/json').send(text);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
