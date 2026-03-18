@@ -10,7 +10,6 @@ app.post('/messages', (req, res) => {
   const { messages, max_tokens } = req.body;
   const apiKey = req.headers['x-api-key'];
 
-  // Convertir formato Anthropic a Gemini
   const contents = [];
   for (const msg of messages) {
     const parts = [];
@@ -27,7 +26,7 @@ app.post('/messages', (req, res) => {
     } else {
       parts.push({ text: msg.content });
     }
-    contents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
+    contents.push({ role: 'user', parts });
   }
 
   const geminiBody = JSON.stringify({
@@ -49,18 +48,23 @@ app.post('/messages', (req, res) => {
     let data = '';
     apiRes.on('data', chunk => data += chunk);
     apiRes.on('end', () => {
+      console.log('Gemini raw response:', data.slice(0, 500));
       try {
         const geminiResp = JSON.parse(data);
         const text = geminiResp.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        // Devolver en formato Anthropic para que el HTML no cambie
+        console.log('Extracted text:', text.slice(0, 200));
         res.json({ content: [{ type: 'text', text }] });
       } catch(e) {
-        res.status(500).json({ error: 'Error procesando respuesta: ' + data });
+        console.log('Parse error:', e.message);
+        res.status(500).json({ error: 'Error: ' + data.slice(0, 300) });
       }
     });
   });
 
-  apiReq.on('error', (e) => res.status(500).json({ error: e.message }));
+  apiReq.on('error', (e) => {
+    console.log('Request error:', e.message);
+    res.status(500).json({ error: e.message });
+  });
   apiReq.write(geminiBody);
   apiReq.end();
 });
